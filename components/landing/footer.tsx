@@ -1,6 +1,25 @@
-/*
-This server component provides the footer for the app.
-*/
+/**
+ * @description
+ * This server component provides the footer for the AI Food Identifier & Nutrition Tracker app.
+ * It offers a simple, static layout with:
+ * - Navigation links grouped by category (Company, Product, Resources, Social)
+ * - A copyright notice
+ *
+ * Key features:
+ * - Minimalist Design: Clean and uncluttered, per design requirements
+ * - Static Content: No interactive elements, suitable for server rendering
+ *
+ * @dependencies
+ * - lucide-react: For social media icons (Github, Twitter)
+ * - next/link: For navigation links
+ *
+ * @notes
+ * - Marked as "use server" per project rules for server components
+ * - Links are tailored to the app’s scope, omitting irrelevant sections
+ * - No async operations, so no Suspense is needed
+ */
+
+"use server"
 
 import { Github, Twitter } from "lucide-react"
 import Link from "next/link"
@@ -10,6 +29,7 @@ export async function Footer() {
     <footer className="border-t">
       <div className="container mx-auto max-w-7xl px-4 py-12 md:px-6">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+          {/* Company Links */}
           <div className="space-y-4">
             <h3 className="text-lg font-bold">Company</h3>
             <div className="flex flex-col gap-2">
@@ -20,20 +40,15 @@ export async function Footer() {
                 About
               </Link>
               <Link
-                href="/blog"
+                href="/contact"
                 className="text-muted-foreground hover:text-foreground transition"
               >
-                Blog
-              </Link>
-              <Link
-                href="/careers"
-                className="text-muted-foreground hover:text-foreground transition"
-              >
-                Careers
+                Contact
               </Link>
             </div>
           </div>
 
+          {/* Product Links */}
           <div className="space-y-4">
             <h3 className="text-lg font-bold">Product</h3>
             <div className="flex flex-col gap-2">
@@ -49,15 +64,10 @@ export async function Footer() {
               >
                 Pricing
               </Link>
-              <Link
-                href="/docs"
-                className="text-muted-foreground hover:text-foreground transition"
-              >
-                Documentation
-              </Link>
             </div>
           </div>
 
+          {/* Resources Links */}
           <div className="space-y-4">
             <h3 className="text-lg font-bold">Resources</h3>
             <div className="flex flex-col gap-2">
@@ -82,6 +92,7 @@ export async function Footer() {
             </div>
           </div>
 
+          {/* Social Links */}
           <div className="space-y-4">
             <h3 className="text-lg font-bold">Social</h3>
             <div className="flex gap-4">
@@ -103,10 +114,9 @@ export async function Footer() {
           </div>
         </div>
 
+        {/* Copyright Notice */}
         <div className="text-muted-foreground mt-12 pt-8 text-center">
-          <p>
-            &copy; {new Date().getFullYear()} Your Company. All rights reserved.
-          </p>
+          <p>&copy; 2025 AI Food ID. All rights reserved.</p>
         </div>
       </div>
     </footer>

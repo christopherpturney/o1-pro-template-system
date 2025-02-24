@@ -1,6 +1,28 @@
-/*
-This client component provides the header for the app.
-*/
+/**
+ * @description
+ * This client component serves as the header for the AI Food Identifier & Nutrition Tracker app.
+ * It provides navigation and authentication controls, featuring:
+ * - A logo and app name linking to the homepage
+ * - Responsive navigation with links tailored to the app
+ * - Clerk authentication buttons (Sign In, Sign Up, User profile)
+ * - Mobile menu toggle with animations
+ *
+ * Key features:
+ * - Responsive Design: Adapts to mobile with a collapsible menu
+ * - Authentication: Integrates Clerk’s sign-in/up and user profile components
+ * - Animations: Uses Framer Motion for smooth transitions
+ *
+ * @dependencies
+ * - @clerk/nextjs: For authentication components (SignedIn, SignedOut, etc.)
+ * - framer-motion: For animation effects
+ * - lucide-react: For icons (Menu, X, Utensils)
+ * - next/link: For client-side navigation
+ *
+ * @notes
+ * - Marked as "use client" due to interactive client-side logic
+ * - Navigation links are customized for this app’s features
+ * - Scroll-based styling adds a shadow and blur effect when scrolled
+ */
 
 "use client"
 
@@ -13,10 +35,11 @@ import {
   UserButton
 } from "@clerk/nextjs"
 import { motion } from "framer-motion"
-import { Menu, Receipt, X } from "lucide-react"
+import { Menu, Utensils, X } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
+// Navigation links for all users
 const navLinks = [
   { href: "/about", label: "About" },
   { href: "/features", label: "Features" },
@@ -24,21 +47,23 @@ const navLinks = [
   { href: "/contact", label: "Contact" }
 ]
 
+// Additional links for signed-in users
 const signedInLinks = [{ href: "/dashboard", label: "Dashboard" }]
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
+  // Toggle mobile menu visibility
   const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen)
+    setIsMenuOpen(prev => !prev)
   }
 
+  // Handle scroll effect for header styling
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0)
     }
-
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
@@ -54,17 +79,19 @@ export default function Header() {
       }`}
     >
       <div className="container mx-auto flex max-w-7xl items-center justify-between p-4">
+        {/* Logo and App Name */}
         <motion.div
           className="flex items-center space-x-2 hover:cursor-pointer hover:opacity-80"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <Receipt className="size-6" />
+          <Utensils className="size-6" />
           <Link href="/" className="text-xl font-bold">
-            Receipt AI
+            AI Food ID
           </Link>
         </motion.div>
 
+        {/* Desktop Navigation */}
         <nav className="absolute left-1/2 hidden -translate-x-1/2 space-x-2 md:flex">
           {navLinks.map(link => (
             <motion.div
@@ -80,7 +107,6 @@ export default function Header() {
               </Link>
             </motion.div>
           ))}
-
           <SignedIn>
             {signedInLinks.map(link => (
               <motion.div
@@ -99,6 +125,7 @@ export default function Header() {
           </SignedIn>
         </nav>
 
+        {/* Authentication and Mobile Menu Toggle */}
         <div className="flex items-center space-x-4">
           <SignedOut>
             <SignInButton>
@@ -109,7 +136,6 @@ export default function Header() {
                 <Button variant="ghost">Sign In</Button>
               </motion.div>
             </SignInButton>
-
             <SignUpButton>
               <motion.div
                 whileHover={{ scale: 1.05 }}
@@ -119,11 +145,9 @@ export default function Header() {
               </motion.div>
             </SignUpButton>
           </SignedOut>
-
           <SignedIn>
             <UserButton />
           </SignedIn>
-
           <motion.div
             className="md:hidden"
             whileHover={{ scale: 1.05 }}
@@ -145,6 +169,7 @@ export default function Header() {
         </div>
       </div>
 
+      {/* Mobile Navigation */}
       {isMenuOpen && (
         <motion.nav
           initial={{ opacity: 0, y: -10 }}

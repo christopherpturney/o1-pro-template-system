@@ -1,13 +1,30 @@
-/*
-This client component provides a video dialog for the hero section.
-*/
+/**
+ * @description
+ * This client component provides a video dialog for the hero section.
+ * It displays a thumbnail that, when clicked, opens a modal with an embedded video starting at an optional timestamp.
+ *
+ * Key features:
+ * - Interactive Modal: Clicking the thumbnail opens a video player; clicking outside closes it
+ * - Animation: Uses Framer Motion for smooth entrance/exit effects
+ * - Timestamp Support: Optional startTime prop sets the video’s initial playback position
+ *
+ * @dependencies
+ * - framer-motion: For modal animations (AnimatePresence, motion)
+ * - lucide-react: For icons (Play, XIcon)
+ * - react: For state management (useState)
+ * - "@/lib/utils": For className utility (cn)
+ *
+ * @notes
+ * - Marked as "use client" due to client-side interactivity
+ * - Supports YouTube embed URLs; other sources may need URL adjustments
+ * - startTime is appended as a query parameter (?start=<seconds>) to the videoSrc
+ */
 
 "use client"
 
 import { AnimatePresence, motion } from "framer-motion"
 import { Play, XIcon } from "lucide-react"
 import { useState } from "react"
-
 import { cn } from "@/lib/utils"
 
 type AnimationStyle =
@@ -25,6 +42,7 @@ interface HeroVideoProps {
   videoSrc: string
   thumbnailSrc: string
   thumbnailAlt?: string
+  startTime?: number // Optional start time in seconds
   className?: string
 }
 
@@ -76,10 +94,14 @@ export default function HeroVideoDialog({
   videoSrc,
   thumbnailSrc,
   thumbnailAlt = "Video thumbnail",
+  startTime,
   className
 }: HeroVideoProps) {
   const [isVideoOpen, setIsVideoOpen] = useState(false)
   const selectedAnimation = animationVariants[animationStyle]
+
+  // Construct the video URL with start time if provided
+  const finalVideoSrc = startTime ? `${videoSrc}?start=${startTime}` : videoSrc
 
   return (
     <div className={cn("relative", className)}>
@@ -129,7 +151,7 @@ export default function HeroVideoDialog({
               </motion.button>
               <div className="relative isolate z-[1] size-full overflow-hidden rounded-2xl border-2 border-white">
                 <iframe
-                  src={videoSrc}
+                  src={finalVideoSrc}
                   className="size-full rounded-2xl"
                   allowFullScreen
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
