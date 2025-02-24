@@ -1,5 +1,5 @@
 /*
-Initializes the database connection and schema for the app.
+Initializes the database connection and schema for the app. asdf
 */
 
 import { profilesTable } from "@/db/schema"
