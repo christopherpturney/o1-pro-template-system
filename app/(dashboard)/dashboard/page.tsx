@@ -38,10 +38,10 @@ export default async function DashboardPage() {
       {/* Quick navigation */}
       <section className="flex flex-col gap-4 sm:flex-row">
         <Button asChild>
-          <Link href="/dashboard/meal-log">Log a New Meal</Link>
+          <Link href="/meal-log">Log a New Meal</Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link href="/dashboard/meal-history">View Meal History</Link>
+          <Link href="/meal-history">View Meal History</Link>
         </Button>
       </section>
     </div>

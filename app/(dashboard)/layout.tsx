@@ -59,19 +59,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Navigation links */}
           <nav className="flex-1 space-y-2 p-4">
             <Link
-              href="/dashboard/meal-log"
+              href="/meal-log"
               className="hover:bg-muted block rounded-md p-2"
             >
               Meal Log
             </Link>
             <Link
-              href="/dashboard/meal-history"
+              href="/meal-history"
               className="hover:bg-muted block rounded-md p-2"
             >
               Meal History
             </Link>
             <Link
-              href="/dashboard/settings"
+              href="/settings"
               className="hover:bg-muted block rounded-md p-2"
             >
               Settings
