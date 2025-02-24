@@ -9,5 +9,6 @@
  * - Keep exports alphabetically ordered for maintainability
  */
 
+export * from "./food-items-schema"
 export * from "./meals-schema"
 export * from "./profiles-schema"

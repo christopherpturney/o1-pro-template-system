@@ -16,7 +16,7 @@
  * - Add new schemas to the schema object as they are created
  */
 
-import { mealsTable, profilesTable } from "@/db/schema"
+import { foodItemsTable, mealsTable, profilesTable } from "@/db/schema"
 import { config } from "dotenv"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
@@ -26,6 +26,7 @@ config({ path: ".env.local" })
 
 // Configure complete schema
 const schema = {
+  foodItems: foodItemsTable,
   meals: mealsTable,
   profiles: profilesTable
 }
