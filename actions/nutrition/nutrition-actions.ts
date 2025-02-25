@@ -66,7 +66,7 @@ export async function getNutritionInfoAction(
       return {
         isSuccess: true,
         message: "Using estimated nutrition (no exact match found)",
-        data: [getFallbackNutrition(foodName)]
+        data: [(await getFallbackNutrition(foodName))]
       }
     }
 
@@ -82,7 +82,7 @@ export async function getNutritionInfoAction(
     return {
       isSuccess: true, // Still return success with fallback data
       message: "Using estimated nutrition (error fetching data)",
-      data: [getFallbackNutrition(foodName)]
+      data: [(await getFallbackNutrition(foodName))]
     }
   }
 }
@@ -186,11 +186,11 @@ export async function batchNutritionLookupAction(
             results[name] = result.data[0]
           } else {
             // Use fallback for this item
-            results[name] = getFallbackNutrition(name)
+            results[name] = await getFallbackNutrition(name)
           }
         } catch (error) {
           console.error(`Error looking up nutrition for "${name}":`, error)
-          results[name] = getFallbackNutrition(name)
+          results[name] = await getFallbackNutrition(name)
         }
       })
     )

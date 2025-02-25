@@ -180,8 +180,8 @@ export default function MealLogForm() {
             fat: nutritionData.nutrition.fat || 0,
             // Store the source but don't display it in the UI directly
             source: nutritionData.source,
-            sourceId: nutritionData.sourceId || null,
-            description: nutritionData.description || null,
+            sourceId: nutritionData.sourceId || undefined,
+            description: nutritionData.description || undefined,
             confidence: item.confidence || nutritionData.confidence || 0
           }
         }
@@ -221,8 +221,8 @@ export default function MealLogForm() {
                 fat: nutritionData.nutrition.fat || 0,
                 // Store source data for linking to nutrition database
                 source: nutritionData.source,
-                sourceId: nutritionData.sourceId || null,
-                description: nutritionData.description || null
+                sourceId: nutritionData.sourceId || undefined,
+                description: nutritionData.description || undefined
               }
             }
 
