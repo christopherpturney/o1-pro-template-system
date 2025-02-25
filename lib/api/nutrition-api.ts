@@ -320,7 +320,7 @@ export async function searchFoodNutrition(
 ): Promise<NutritionAPIResponse<FoodItemDetail>> {
   try {
     const [usdaResults, openFoodFactsResults] = await Promise.allSettled([
-      searchUSDAFoods({ query, pageSize: 10 }),
+      searchUSDAFoods({ query, pageSize: 10, dataType: ["Foundation"] }),
       searchOpenFoodFacts({ search_terms: query, page_size: 10 })
     ])
 
