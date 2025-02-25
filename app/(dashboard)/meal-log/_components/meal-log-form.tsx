@@ -1,60 +1,48 @@
+// app/(dashboard)/meal-log/_components/meal-log-form.tsx
 "use client"
-
-/**
- * @description
- * This client component provides a form for logging a new meal.
- * It allows users to upload an image, with plans to add food item adjustments and meal saving in later steps.
- *
- * Key features:
- * - Image Upload: Integrates the ImageUpload component for file selection
- * - Form Submission: Uploads the image to Supabase via server action
- * - Responsive Design: Uses Tailwind CSS for a clean, mobile-friendly UI
- *
- * @dependencies
- * - react: For state management (useState)
- * - "@/components/image-upload": For image selection functionality
- * - "@/components/ui/button": For styled buttons
- * - "@/components/ui/card": For structured layout
- * - "@/actions/storage/image-upload-actions": For uploading to Supabase
- *
- * @notes
- * - Marked as "use client" due to interactive form handling
- * - Uploads image to Supabase; AI processing and meal saving to be added later
- * - Food item list (Step 24) and AI processing (Step 21) to be added in future steps
- */
 
 import { useState } from "react"
 import ImageUpload from "@/components/image-upload"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { uploadImageAction } from "@/actions/storage/image-upload-actions"
 
 export default function MealLogForm() {
-  // State to store the selected image file and upload status
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [uploadStatus, setUploadStatus] = useState<string | null>(null)
 
-  // Handle image selection from ImageUpload component
   const handleImageSelected = (file: File) => {
     setSelectedImage(file)
-    setUploadStatus(null) // Reset status on new selection
+    setUploadStatus(null)
+    console.log("Selected image:", file.name, file.size, file.type)
   }
 
-  // Handle form submission with server action
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedImage) return
 
     setUploadStatus("Uploading...")
 
-    // Call server action to upload image
-    const result = await uploadImageAction({ file: selectedImage })
+    const formData = new FormData()
+    formData.append("file", selectedImage)
 
-    if (result.isSuccess) {
-      setUploadStatus(`Image uploaded successfully! Path: ${result.data.path}`)
-      // TODO: Proceed with AI processing (Step 21) and meal saving (Step 28)
-    } else {
-      setUploadStatus(`Upload failed: ${result.message}`)
+    try {
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Upload failed")
+      }
+
+      const result = await response.json()
+      setUploadStatus(`Image uploaded successfully! Path: ${result.path}`)
+    } catch (error) {
+      console.error("Upload error:", error)
+      setUploadStatus(
+        `Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`
+      )
     }
   }
 
@@ -65,12 +53,9 @@ export default function MealLogForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Image upload section */}
           <div>
             <ImageUpload onImageSelected={handleImageSelected} />
           </div>
-
-          {/* Submit button */}
           <Button
             type="submit"
             disabled={!selectedImage || uploadStatus === "Uploading..."}
@@ -78,8 +63,6 @@ export default function MealLogForm() {
           >
             Log Meal
           </Button>
-
-          {/* Upload status */}
           {uploadStatus && (
             <p
               className={`text-center text-sm ${
