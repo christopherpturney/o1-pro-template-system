@@ -8,6 +8,7 @@
  * - Optional image display
  * - Expandable details
  * - Edit/delete actions
+ * - Displays AI confidence score when available
  *
  * @example
  * <FoodCard
@@ -17,7 +18,8 @@
  *     protein: 1.3,
  *     carbs: 27,
  *     fat: 0.3,
- *     imageUrl: "/banana.jpg"
+ *     imageUrl: "/banana.jpg",
+ *     confidence: 0.95
  *   }}
  *   onEdit={() => {}}
  *   onDelete={() => {}}
@@ -43,6 +45,7 @@ export interface FoodItem {
   fat: number
   imageUrl?: string
   detectedViaAI?: boolean
+  confidence?: number
 }
 
 interface FoodCardProps {
@@ -57,6 +60,12 @@ export function FoodCard({ food, onEdit, onDelete, className }: FoodCardProps) {
 
   const toggleExpanded = () => setIsExpanded(!isExpanded)
 
+  // Format confidence as percentage if available
+  const confidenceDisplay =
+    food.confidence !== undefined
+      ? `${Math.round(food.confidence * 100)}%`
+      : null
+
   return (
     <Card className={cn("overflow-hidden", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -65,6 +74,11 @@ export function FoodCard({ food, onEdit, onDelete, className }: FoodCardProps) {
           {food.detectedViaAI && (
             <span className="bg-primary/10 text-primary rounded-full px-2 py-1 text-xs">
               AI Detected
+            </span>
+          )}
+          {confidenceDisplay && (
+            <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-800 dark:bg-green-900 dark:text-green-100">
+              {confidenceDisplay}
             </span>
           )}
         </div>

@@ -156,7 +156,8 @@ export default function MealLogForm() {
           protein: 0,
           carbs: 0,
           fat: 0,
-          detectedViaAI: true
+          detectedViaAI: true,
+          confidence: item.confidence // Include the confidence score from AI
         }))
 
         setFoodItems(detectedItems)

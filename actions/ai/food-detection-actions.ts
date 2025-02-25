@@ -8,6 +8,7 @@
  * - @/types: For ActionState type
  * - @clerk/nextjs/server: For authentication
  * - @supabase/auth-helpers-nextjs: For Supabase storage access
+ * - @/lib/api/openai-vision: For OpenAI Vision API integration
  */
 
 "use server"
@@ -15,6 +16,7 @@
 import { ActionState } from "@/types"
 import { auth } from "@clerk/nextjs/server"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { processImageWithOpenAI } from "@/lib/api/openai-vision"
 
 // Define interfaces for food detection results
 export interface FoodItem {
@@ -41,9 +43,9 @@ const ERROR_MESSAGES = {
 
 /**
  * Process an image to detect food items and extract text
- * This is a temporary mock implementation
+ * Uses OpenAI Vision API to analyze the image and identify food items
  * 
- * @param imageUrl Base64 image data or URL to process
+ * @param imageData Base64 image data or URL to process
  * @returns Promise with detection results
  */
 export async function detectFoodInImageAction(
@@ -58,9 +60,33 @@ export async function detectFoodInImageAction(
       }
     }
 
-    // For now, return mock data until proper AI integration is set up
-    // In Step 21, this will be replaced with actual AI service integration
-    return await mockDetectFoodItems(imageData)
+    // Process the image with OpenAI Vision API
+    const result = await processImageWithOpenAI(imageData)
+    
+    // Handle processing errors
+    if (!result.isSuccess) {
+      return {
+        isSuccess: false,
+        message: result.message || ERROR_MESSAGES.API_ERROR
+      }
+    }
+    
+    // If no food items were detected, return a specific message
+    if (!result.data.foodItems || result.data.foodItems.length === 0) {
+      return {
+        isSuccess: false,
+        message: ERROR_MESSAGES.NO_FOOD_DETECTED
+      }
+    }
+    
+    return {
+      isSuccess: true,
+      message: "Food items detected successfully",
+      data: {
+        foodItems: result.data.foodItems,
+        extractedText: result.data.extractedText || []
+      }
+    }
     
   } catch (error) {
     console.error("Error in detectFoodInImageAction:", error)
@@ -221,28 +247,6 @@ export async function refineFoodItemsAction(
     return {
       isSuccess: false,
       message: `Failed to refine food items: ${error instanceof Error ? error.message : String(error)}`
-    }
-  }
-}
-
-// Mock implementation for food detection
-// This will be replaced with real AI integration in a future step
-async function mockDetectFoodItems(imageData: string): Promise<ActionState<FoodDetectionResult>> {
-  // Simulate some processing time
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  
-  // Return mock data
-  return {
-    isSuccess: true,
-    message: "Food items detected successfully",
-    data: {
-      foodItems: [
-        { name: "Apple", confidence: 0.95 },
-        { name: "Banana", confidence: 0.92 },
-        { name: "Orange", confidence: 0.88 },
-        { name: "Yogurt", confidence: 0.75 }
-      ],
-      extractedText: ["Organic", "Natural", "No preservatives"]
     }
   }
 } 

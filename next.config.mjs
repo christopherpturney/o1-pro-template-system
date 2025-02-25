@@ -9,11 +9,14 @@ const nextConfig = {
       { hostname: "dselmfiqklamghlanoez.supabase.co" }
     ]
   },
-  // Configure server actions to allow larger payloads for image processing
-  serverActions: {
-    // Increase body size limit to 10MB to accommodate image uploads
-    bodySizeLimit: 10 * 1024 * 1024 // 10MB in bytes
-  }
+  // Configure experimental features including server actions body size
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb'
+    }
+  },
+  // Add transpilation for formdata-node package
+  transpilePackages: ['formdata-node']
 }
 
 export default nextConfig

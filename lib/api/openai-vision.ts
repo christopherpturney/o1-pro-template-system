@@ -67,9 +67,9 @@ export async function processImageWithOpenAI(
     If there's no food in the image, return an empty array for foodItems.
     `
 
-    // Call the OpenAI Vision API
+    // Call the OpenAI API with gpt-4
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
@@ -82,7 +82,9 @@ export async function processImageWithOpenAI(
           ]
         }
       ],
-      max_tokens: 1500
+      temperature: 0.7, // Add temperature for consistent but natural responses
+      max_tokens: 1000, // Adjust max tokens to ensure complete responses
+      n: 1 // Ensure we only get one completion
     })
 
     // Extract and parse the response

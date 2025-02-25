@@ -5,6 +5,7 @@
  * - Basic food information (name)
  * - Nutritional information (calories, fat, carbs, protein)
  * - AI detection tracking
+ * - AI confidence score
  * - Foreign key relationship to the meal
  * - Automatic timestamp handling
  *
@@ -15,6 +16,7 @@
  * - Uses UUID for primary key as per project standards
  * - Nutritional values use numeric type with precision for accurate calculations
  * - All nutritional fields are nullable to handle cases where data is unavailable
+ * - Confidence field stores the AI's confidence score (0-1)
  * - Foreign key to meals table with cascade delete
  * - Includes created_at and updated_at timestamps
  */
@@ -51,6 +53,9 @@ export const foodItemsTable = pgTable("food_items", {
 
   // AI detection tracking
   detectedViaAi: boolean("detected_via_ai").default(false).notNull(),
+
+  // AI confidence score (0-1)
+  confidence: numeric("confidence", { precision: 4, scale: 3 }),
 
   // Timestamps
   createdAt: timestamp("created_at").defaultNow().notNull(),
