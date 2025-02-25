@@ -395,6 +395,12 @@ function transformUSDAFood(food: any): FoodItemDetail {
           case "208": // Energy (kcal)
             calories = nutrient.value || 0
             break
+          case "2048": // Energy (Atwater Specific Factors)
+            // Only use this value if calories haven't been set yet by nutrient 208
+            if (calories === 0) {
+              calories = nutrient.value || 0
+            }
+            break
           case "203": // Protein
             protein = nutrient.value || 0
             break
