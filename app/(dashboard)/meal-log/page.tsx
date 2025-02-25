@@ -2,29 +2,38 @@
 
 /**
  * @description
- * This server component serves as the meal logging page under the dashboard.
- * It renders a form for users to upload an image of their meal for logging.
+ * This page allows users to log meals by uploading food images for AI analysis,
+ * editing detected food items, and saving meals to their history.
  *
- * Key features:
- * - Simple Layout: Displays a title and the meal logging form
- * - Integration: Uses the dashboard layout for navigation consistency
+ * It serves as a container for the MealLogForm client component, which handles
+ * the interactive elements of meal logging.
  *
  * @dependencies
- * - "@/app/(dashboard)/meal-log/_components/meal-log-form": Client component for form handling
+ * - MealLogForm: Client component for handling the meal logging workflow
+ * - Suspense: For handling async data loading
  *
  * @notes
- * - Marked as "use server" per project rules for server components
- * - No async operations yet (e.g., fetching meals), so no Suspense is needed
- * - Future steps will add AI processing and food item management
+ * - No asynchronous data fetching is required directly in this page
+ * - All interactive functionality is delegated to the client component
+ * - Server component pattern used for better SEO and initial load performance
  */
 
 import MealLogForm from "./_components/meal-log-form"
 
 export default async function MealLogPage() {
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="mb-6 text-3xl font-bold">Log a New Meal</h1>
-      <MealLogForm />
+    <div className="container mx-auto max-w-4xl px-4 py-8">
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Log a Meal</h1>
+          <p className="text-muted-foreground">
+            Take a photo of your food or upload an image to identify items and
+            track nutrition.
+          </p>
+        </div>
+
+        <MealLogForm />
+      </div>
     </div>
   )
 }

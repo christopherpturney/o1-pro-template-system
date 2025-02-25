@@ -34,13 +34,17 @@ import { cn } from "@/lib/utils"
 // Props interface for the component
 interface ImageUploadProps {
   onImageSelected: (file: File) => void // Callback to pass selected file to parent
+  className?: string // Optional custom className for styling
 }
 
 // Validation constants per storage rules
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB in bytes
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"]
 
-export default function ImageUpload({ onImageSelected }: ImageUploadProps) {
+export default function ImageUpload({
+  onImageSelected,
+  className
+}: ImageUploadProps) {
   // State for the selected image preview and error message
   const [preview, setPreview] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -69,7 +73,7 @@ export default function ImageUpload({ onImageSelected }: ImageUploadProps) {
     setPreview(previewUrl)
     onImageSelected(file)
 
-    // Note: Preview URL is not revoked here as it’s tied to component lifecycle;
+    // Note: Preview URL is not revoked here as it's tied to component lifecycle;
     // parent component should handle cleanup if needed
   }
 
@@ -82,7 +86,7 @@ export default function ImageUpload({ onImageSelected }: ImageUploadProps) {
   })
 
   return (
-    <div className="w-full max-w-md">
+    <div className={cn("mx-auto w-full max-w-md", className)}>
       {/* Dropzone area */}
       <div
         {...getRootProps()}

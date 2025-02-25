@@ -93,7 +93,7 @@ export async function processImageAction(
  * @param result - The raw result from the OpenAI Vision API
  * @returns Normalized and validated ImageProcessingResult
  */
-export async function normalizeProcessingResult(result: ActionState<ImageProcessingResult>): Promise<ActionState<ImageProcessingResult>> {
+async function normalizeProcessingResult(result: ActionState<ImageProcessingResult>): Promise<ActionState<ImageProcessingResult>> {
   // If the result already failed, return it as is
   if (!result.isSuccess) {
     return result;
@@ -212,7 +212,7 @@ export async function refineFoodItemsAction(
  * @param result - The image processing result to analyze
  * @returns The original result or an error if quality issues are detected
  */
-export async function validateImageContent(result: ActionState<ImageProcessingResult>): Promise<ActionState<ImageProcessingResult>> {
+async function validateImageContent(result: ActionState<ImageProcessingResult>): Promise<ActionState<ImageProcessingResult>> {
   // If the result already failed, return it as is
   if (!result.isSuccess) {
     return result;
@@ -388,4 +388,4 @@ export async function processPublicImageAction(
       message: errorMessage
     }
   }
-}
+} 
