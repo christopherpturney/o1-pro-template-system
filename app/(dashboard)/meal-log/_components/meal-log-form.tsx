@@ -13,6 +13,7 @@
  * - Multi-step wizard interface
  * - Image upload with preview
  * - AI-powered food detection
+ * - Automatic nutrition lookup for detected foods
  * - Manual food item editing
  * - Error handling and loading states
  *
@@ -20,7 +21,9 @@
  * - ImageUpload: For capturing/uploading food images
  * - FoodItemList: For displaying and editing detected food items
  * - detectFoodInImageAction: Server action for AI image analysis
+ * - getNutritionInfoAction: Server action for food nutrition lookup
  * - createMealAction: Server action for saving the meal to database
+ * - createFoodItemAction: Server action for creating food items
  * - Lucide icons: For UI elements
  * - React hooks: For state management
  *
@@ -50,6 +53,11 @@ import {
 // Import the new server action instead of the simplified version
 import { detectFoodInImageAction } from "@/actions/ai/food-detection-actions"
 import { createMealAction } from "@/actions/db/meals-actions"
+import { createFoodItemAction } from "@/actions/db/food-items-actions"
+import {
+  getNutritionInfoAction,
+  batchNutritionLookupAction
+} from "@/actions/nutrition/nutrition-actions"
 import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -73,6 +81,8 @@ interface MealLogFoodItem {
   detectedViaAi?: boolean
   detectedViaAI?: boolean // UI component uses capital AI
   imageUrl?: string
+  // Add source property to match what we're setting in the code
+  source?: "USDA" | "OpenFoodFacts" | "default"
 }
 
 export default function MealLogForm() {
@@ -89,6 +99,8 @@ export default function MealLogForm() {
   // State for the uploaded image
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  // Base64 image data for server processing
+  const [imageBase64, setImageBase64] = useState<string | null>(null)
 
   // State for meal information
   const [mealDate, setMealDate] = useState<string>(
@@ -98,25 +110,141 @@ export default function MealLogForm() {
   // State for food items
   const [foodItems, setFoodItems] = useState<FoodItem[]>([])
 
-  // State for error handling
+  // State for errors and processing
   const [error, setError] = useState<string | null>(null)
-
-  // State for loading states
   const [isProcessing, setIsProcessing] = useState(false)
+  // New state for nutrition fetching
+  const [isLoadingNutrition, setIsLoadingNutrition] = useState(false)
 
-  // Handle image upload
+  // Convert File to base64 string
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = error => reject(error)
+    })
+  }
+
+  // Handle image upload - Fix the type to accept only one parameter
   const handleImageUpload = useCallback((file: File) => {
-    setImageFile(file)
+    if (file) {
+      setImageFile(file)
+      // Generate preview URL from the file
+      const previewUrl = URL.createObjectURL(file)
+      setImagePreview(previewUrl)
 
-    // Generate preview URL from the file
-    const previewUrl = URL.createObjectURL(file)
-    setImagePreview(previewUrl)
+      // Convert file to base64 for server processing
+      fileToBase64(file)
+        .then(base64String => {
+          setImageBase64(base64String)
+          setError(null)
+        })
+        .catch(err => {
+          console.error("Error converting image to base64:", err)
+          setError("Failed to process the image. Please try again.")
+        })
+    }
+  }, [])
+
+  // Handle food items changes
+  const handleFoodItemsChange = useCallback((updatedItems: FoodItem[]) => {
+    setFoodItems(updatedItems)
     setError(null)
   }, [])
 
-  // Process the image to detect food items
+  // Fetch nutrition information for a single food item
+  const fetchNutritionForFoodItem = useCallback(
+    async (item: FoodItem): Promise<FoodItem> => {
+      try {
+        // Return early if the item already has nutrition info
+        if (
+          item.calories > 0 ||
+          item.protein > 0 ||
+          item.carbs > 0 ||
+          item.fat > 0
+        ) {
+          return item
+        }
+
+        const response = await getNutritionInfoAction(item.name)
+
+        if (response.isSuccess && response.data.length > 0) {
+          const nutritionData = response.data[0]
+
+          return {
+            ...item,
+            calories: nutritionData.nutrition.calories || 0,
+            protein: nutritionData.nutrition.protein || 0,
+            carbs: nutritionData.nutrition.carbs || 0,
+            fat: nutritionData.nutrition.fat || 0,
+            // Store the source but don't display it in the UI directly
+            source: nutritionData.source,
+            confidence: item.confidence || nutritionData.confidence || 0
+          }
+        }
+
+        return item
+      } catch (error) {
+        console.error(`Error fetching nutrition for ${item.name}:`, error)
+        return item
+      }
+    },
+    []
+  )
+
+  // Process multiple food items in batch
+  const processFoodItemsWithNutrition = useCallback(
+    async (items: FoodItem[]): Promise<FoodItem[]> => {
+      setIsLoadingNutrition(true)
+
+      try {
+        // Extract just the names for batch lookup
+        const foodNames = items.map(item => item.name)
+
+        // Batch lookup nutrition information
+        const response = await batchNutritionLookupAction(foodNames)
+
+        if (response.isSuccess) {
+          // Update each food item with its nutrition information
+          return items.map(item => {
+            const nutritionData = response.data[item.name]
+
+            if (nutritionData) {
+              return {
+                ...item,
+                calories: nutritionData.nutrition.calories || 0,
+                protein: nutritionData.nutrition.protein || 0,
+                carbs: nutritionData.nutrition.carbs || 0,
+                fat: nutritionData.nutrition.fat || 0,
+                // Store source but don't necessarily display it in the UI
+                source: nutritionData.source
+              }
+            }
+
+            return item
+          })
+        }
+
+        // If batch lookup fails, try each item individually
+        const processedItems = await Promise.all(
+          items.map(item => fetchNutritionForFoodItem(item))
+        )
+
+        return processedItems
+      } catch (error) {
+        console.error("Error processing food items with nutrition:", error)
+        return items
+      } finally {
+        setIsLoadingNutrition(false)
+      }
+    },
+    [fetchNutritionForFoodItem]
+  )
+
+  // Process the uploaded image using AI
   const processImage = useCallback(async () => {
-    if (!imageFile) {
+    if (!imageFile || !imageBase64) {
       setError("Please upload an image first")
       return
     }
@@ -125,58 +253,48 @@ export default function MealLogForm() {
     setError(null)
 
     try {
-      // Convert the file to base64 for the server action
-      const reader = new FileReader()
-      reader.readAsDataURL(imageFile)
-      reader.onloadend = async () => {
-        const base64Image = reader.result as string
+      // Call the server action with base64 data instead of blob URL
+      const result = await detectFoodInImageAction(imageBase64)
 
-        // Call the new food detection server action
-        const result = await detectFoodInImageAction(base64Image)
-
-        if (!result.isSuccess) {
-          setError(result.message || "Failed to process image")
-          setIsProcessing(false)
-          return
-        }
-
-        // Check if we received food items from the AI
-        if (!result.data?.foodItems || result.data.foodItems.length === 0) {
-          setError(
-            "No food items were detected in the image. Try a different image or add items manually."
-          )
-          setIsProcessing(false)
-          return
-        }
-
-        // Convert the detected items to FoodItem format
-        const detectedItems: FoodItem[] = result.data.foodItems.map(item => ({
-          name: item.name,
-          calories: 0, // Default values since the API might not provide these
-          protein: 0,
-          carbs: 0,
-          fat: 0,
-          detectedViaAI: true,
-          confidence: item.confidence // Include the confidence score from AI
-        }))
-
-        setFoodItems(detectedItems)
-        setCurrentStep(MealLogStep.Review)
-        setIsProcessing(false)
+      if (!result.isSuccess) {
+        setError(result.message)
+        return
       }
-    } catch (err) {
-      console.error("Error processing image:", err)
+
+      if (result.data.foodItems.length === 0) {
+        setError(
+          "No food items detected. Please try a clearer image or add items manually."
+        )
+        return
+      }
+
+      // Transform the detected food items to match our FoodItem interface
+      let detectedItems: FoodItem[] = result.data.foodItems.map(item => ({
+        name: item.name,
+        calories: 0, // Will be populated by nutrition lookup
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        detectedViaAI: true,
+        confidence: item.confidence
+      }))
+
+      // Fetch nutritional information for the detected food items
+      const itemsWithNutrition =
+        await processFoodItemsWithNutrition(detectedItems)
+
+      // Update state with the processed items
+      setFoodItems(itemsWithNutrition)
+      setCurrentStep(MealLogStep.Review)
+    } catch (error) {
+      console.error("Error processing image:", error)
       setError(
-        "An error occurred while processing the image. Please try again."
+        "An unexpected error occurred while processing the image. Please try again."
       )
+    } finally {
       setIsProcessing(false)
     }
-  }, [imageFile])
-
-  // Handle changes to food items from the FoodItemList component
-  const handleFoodItemsChange = useCallback((items: FoodItem[]) => {
-    setFoodItems(items)
-  }, [])
+  }, [imageFile, imageBase64, processFoodItemsWithNutrition])
 
   // Save the meal to the database
   const saveMeal = useCallback(() => {
@@ -194,7 +312,7 @@ export default function MealLogForm() {
       return
     }
 
-    // Calculate total calories
+    // Calculate total calories for the meal
     const totalCalories = foodItems.reduce(
       (sum, item) => sum + (item.calories || 0),
       0
@@ -218,6 +336,22 @@ export default function MealLogForm() {
             variant: "destructive"
           })
           return
+        }
+
+        // Now create all the food items associated with this meal
+        for (const item of foodItems) {
+          await createFoodItemAction({
+            mealId: result.data.id,
+            name: item.name,
+            // Convert number values to strings if the database schema expects strings
+            calories: item.calories?.toString() || "0",
+            protein: item.protein?.toString() || "0",
+            carbs: item.carbs?.toString() || "0",
+            fat: item.fat?.toString() || "0",
+            detectedViaAi: item.detectedViaAI || false,
+            // Handle confidence as a string or null
+            confidence: item.confidence?.toString() || null
+          })
         }
 
         // Display success message
@@ -247,6 +381,7 @@ export default function MealLogForm() {
   const resetForm = useCallback(() => {
     setImageFile(null)
     setImagePreview(null)
+    setImageBase64(null)
     setFoodItems([])
     setError(null)
     setCurrentStep(MealLogStep.Upload)
@@ -369,6 +504,17 @@ export default function MealLogForm() {
                     </div>
                   )}
 
+                  {isLoadingNutrition && (
+                    <div className="my-4 flex justify-center">
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="text-primary size-5 animate-spin" />
+                        <span className="text-muted-foreground text-sm">
+                          Fetching nutritional information...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <FoodItemList
                     initialFoodItems={foodItems}
                     onFoodItemsChange={handleFoodItemsChange}
@@ -400,7 +546,10 @@ export default function MealLogForm() {
                     Saving...
                   </>
                 ) : (
-                  "Save Meal"
+                  <>
+                    Save Meal
+                    <ArrowRight className="ml-2 size-4" />
+                  </>
                 )}
               </Button>
             </div>
@@ -412,78 +561,41 @@ export default function MealLogForm() {
           <div className="space-y-6">
             <Card>
               <CardContent className="pt-6">
-                <div className="flex flex-col items-center justify-center space-y-4 py-8 text-center">
-                  <CheckCircle className="size-16 text-green-500" />
+                <div className="space-y-6 py-6 text-center">
+                  <CheckCircle className="text-primary mx-auto size-12" />
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-medium">Meal Logged!</h3>
+                    <p className="text-muted-foreground">
+                      Your meal has been successfully saved to your history.
+                    </p>
+                  </div>
 
-                  <h3 className="text-2xl font-medium">
-                    Meal Logged Successfully!
-                  </h3>
-
-                  <p className="text-muted-foreground max-w-md">
-                    Your meal has been saved to your history. You can view all
-                    your logged meals in the meal history section.
-                  </p>
-
-                  <div className="mt-6 flex space-x-4">
-                    <Button variant="outline" onClick={resetForm}>
-                      <RotateCcw className="mr-2 size-4" />
-                      Log Another Meal
-                    </Button>
-
-                    <Button onClick={viewMealHistory}>View Meal History</Button>
+                  <div className="border-t pt-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={resetForm}
+                        className="gap-2"
+                      >
+                        <RotateCcw className="size-4" />
+                        <span>Log Another Meal</span>
+                      </Button>
+                      <Button onClick={viewMealHistory} className="gap-2">
+                        <Calendar className="size-4" />
+                        <span>View Meal History</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         )
+
+      default:
+        return null
     }
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Step indicator */}
-      <div className="relative flex items-center justify-between px-2">
-        {["Upload Photo", "Review & Edit", "Complete"].map((step, index) => (
-          <div key={step} className="z-10 flex flex-col items-center space-y-2">
-            <div
-              className={cn(
-                "flex size-8 items-center justify-center rounded-full text-sm font-medium",
-                currentStep === index
-                  ? "bg-primary text-primary-foreground"
-                  : currentStep > index
-                    ? "bg-primary/20 text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-              )}
-            >
-              {currentStep > index ? (
-                <CheckCircle className="size-5" />
-              ) : (
-                index + 1
-              )}
-            </div>
-
-            <span
-              className={cn(
-                "text-xs",
-                currentStep === index
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground"
-              )}
-            >
-              {step}
-            </span>
-          </div>
-        ))}
-
-        {/* Connecting lines between steps */}
-        <div className="absolute inset-x-0 top-4 -z-0 flex justify-center">
-          <div className="bg-muted h-0.5 w-2/3" />
-        </div>
-      </div>
-
-      {/* Current step content */}
-      {renderStep()}
-    </div>
-  )
+  return <div className="space-y-6">{renderStep()}</div>
 }

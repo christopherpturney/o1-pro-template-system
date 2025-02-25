@@ -46,6 +46,7 @@ export interface FoodItem {
   imageUrl?: string
   detectedViaAI?: boolean
   confidence?: number
+  source?: "USDA" | "OpenFoodFacts" | "default"
 }
 
 interface FoodCardProps {

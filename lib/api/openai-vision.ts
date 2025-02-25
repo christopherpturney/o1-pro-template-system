@@ -52,12 +52,12 @@ export async function processImageWithOpenAI(
     Format your response as a valid JSON object with the following structure:
     {
       "foodItems": [
-        { "name": "food item name", "confidence": 0.95 },
+        { "name": "Food Item Name", "confidence": 0.95 },
         ...
       ],
       "extractedText": [
-        "line of text 1",
-        "line of text 2",
+        "Line of text 1",
+        "Line of text 2",
         ...
       ]
     }
@@ -65,6 +65,7 @@ export async function processImageWithOpenAI(
     For each food item, include a confidence score between 0 and 1 indicating your confidence in the identification.
     If there's no text in the image, return an empty array for extractedText.
     If there's no food in the image, return an empty array for foodItems.
+    Capitalize the first letter of the "Food item name".
     `
 
     // Call the OpenAI API with gpt-4
