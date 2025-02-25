@@ -57,6 +57,10 @@ export const foodItemsTable = pgTable("food_items", {
   // AI confidence score (0-1)
   confidence: numeric("confidence", { precision: 4, scale: 3 }),
 
+  // Source information
+  source: text("source"),
+  sourceId: text("source_id"),
+
   // Timestamps
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")

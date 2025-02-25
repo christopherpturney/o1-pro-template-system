@@ -2,11 +2,16 @@
 This server component provides a tailwind indicator for the app in dev mode.
 */
 
-"use server"
+"use client"
 
-export async function TailwindIndicator() {
-  // Don't show in production
-  if (process.env.NODE_ENV === "production") return null
+import { useSearchParams } from "next/navigation"
+
+export function TailwindIndicator() {
+  const searchParams = useSearchParams()
+  const showIndicator = searchParams.get("debug") === "tailwind"
+
+  // Don't show in production or if debug parameter is not set
+  if (process.env.NODE_ENV === "production" || !showIndicator) return null
 
   return (
     <div className="fixed bottom-12 left-3 z-50 flex size-6 items-center justify-center rounded-full bg-gray-800 p-3 font-mono text-xs text-white">

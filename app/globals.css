@@ -106,3 +106,8 @@ Global styles for the app.
     @apply shadow-[0_0_15px_rgba(69,37,225,0.5)];
   }
 }
+
+/* Clerk customization */
+.cl-userButtonPopoverFooter {
+  display: none !important;
+}

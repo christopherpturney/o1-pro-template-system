@@ -192,6 +192,18 @@ export function FoodItemList({
     }
   }
 
+  // Handle updating the food item with quantity changes
+  const handleQuantityChange = (updatedItem: FoodItem, index: number) => {
+    const newFoodItems = [...foodItems]
+    newFoodItems[index] = updatedItem
+    setFoodItems(newFoodItems)
+
+    // Notify parent component if needed
+    if (onFoodItemsChange) {
+      onFoodItemsChange(newFoodItems)
+    }
+  }
+
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Nutrition summary card */}
@@ -275,6 +287,12 @@ export function FoodItemList({
                   food={item}
                   onEdit={!readOnly ? () => handleEdit(item, index) : undefined}
                   onDelete={!readOnly ? () => handleDelete(index) : undefined}
+                  onQuantityChange={
+                    !readOnly
+                      ? updatedItem => handleQuantityChange(updatedItem, index)
+                      : undefined
+                  }
+                  readOnly={readOnly}
                   className="mb-2"
                 />
               </motion.div>

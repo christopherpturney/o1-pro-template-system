@@ -9,8 +9,9 @@
  *
  * Key features:
  * - Responsive Design: Adapts to mobile with a collapsible menu
- * - Authentication: Integrates Clerk’s sign-in/up and user profile components
+ * - Authentication: Integrates Clerk's sign-in/up and user profile components
  * - Animations: Uses Framer Motion for smooth transitions
+ * - Dashboard Awareness: Hides itself completely when in dashboard routes to avoid duplicate navigation
  *
  * @dependencies
  * - @clerk/nextjs: For authentication components (SignedIn, SignedOut, etc.)
@@ -20,8 +21,9 @@
  *
  * @notes
  * - Marked as "use client" due to interactive client-side logic
- * - Navigation links are customized for this app’s features
+ * - Navigation links are customized for this app's features
  * - Scroll-based styling adds a shadow and blur effect when scrolled
+ * - Coordinates with dashboard layout using data-in-dashboard attribute
  */
 
 "use client"
@@ -40,12 +42,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 
 // Navigation links for all users
-const navLinks = [
-  { href: "/about", label: "About" },
-  { href: "/features", label: "Features" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Contact" }
-]
+const navLinks = [{ href: "/pricing", label: "Pricing" }]
 
 // Additional links for signed-in users
 const signedInLinks = [{ href: "/dashboard", label: "Dashboard" }]
@@ -53,6 +50,7 @@ const signedInLinks = [{ href: "/dashboard", label: "Dashboard" }]
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isInDashboard, setIsInDashboard] = useState(false)
 
   // Toggle mobile menu visibility
   const toggleMenu = () => {
@@ -67,6 +65,30 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  // Check if we're in the dashboard section based on the data attribute
+  useEffect(() => {
+    // Initial check
+    setIsInDashboard(document.body.hasAttribute("data-in-dashboard"))
+
+    // Watch for attribute changes
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        if (mutation.attributeName === "data-in-dashboard") {
+          setIsInDashboard(document.body.hasAttribute("data-in-dashboard"))
+        }
+      })
+    })
+
+    observer.observe(document.body, { attributes: true })
+
+    return () => observer.disconnect()
+  }, [])
+
+  // Don't render the header at all if we're in the dashboard
+  if (isInDashboard) {
+    return null
+  }
 
   return (
     <motion.header
@@ -141,7 +163,9 @@ export default function Header() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button>Get Started</Button>
+                <Button className="bg-purple-600 hover:bg-purple-700">
+                  Get Started
+                </Button>
               </motion.div>
             </SignUpButton>
           </SignedOut>
