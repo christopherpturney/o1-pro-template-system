@@ -1,20 +1,66 @@
-import * as React from "react"
+/**
+ * @description
+ * This component provides card elements for displaying content in boxes.
+ * Enhanced to match the new purple/blue design system with modern styling.
+ *
+ * Key features:
+ * - Multiple card variants through prop combinations
+ * - Elegant styling with subtle shadows and rounded corners
+ * - Support for hover effects and animations
+ * - Consistent spacing and typography
+ *
+ * @dependencies
+ * - React: For component implementation
+ * - class-variance-authority: For managing variants
+ *
+ * @notes
+ * - Added hover effect options
+ * - Added glass effect option for transparent cards
+ * - Added border glow effect option
+ */
 
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
-const Card = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "bg-card text-card-foreground rounded-lg border shadow-sm",
-      className
-    )}
-    {...props}
-  />
-))
+const cardVariants = cva("rounded-xl transition-all duration-200", {
+  variants: {
+    variant: {
+      default: "bg-card text-card-foreground shadow-card border",
+      outline: "border-border border bg-transparent",
+      ghost: "border-none bg-transparent shadow-none",
+      glass: "glass-effect backdrop-blur-md",
+      filled: "bg-secondary/50 text-secondary-foreground",
+      gradient:
+        "from-primary/10 to-accent/10 bg-gradient-to-br backdrop-blur-sm"
+    },
+    hover: {
+      default: "",
+      lift: "hover:shadow-glossy hover:-translate-y-1",
+      glow: "hover:border-primary/50 hover:purple-glow",
+      zoom: "hover:scale-[1.02]",
+      none: ""
+    }
+  },
+  defaultVariants: {
+    variant: "default",
+    hover: "default"
+  }
+})
+
+export interface CardProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof cardVariants> {}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant, hover, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(cardVariants({ variant, hover, className }))}
+      {...props}
+    />
+  )
+)
 Card.displayName = "Card"
 
 const CardHeader = React.forwardRef<
@@ -36,7 +82,7 @@ const CardTitle = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
+      "text-xl font-semibold leading-none tracking-tight",
       className
     )}
     {...props}

@@ -64,7 +64,23 @@ const config = {
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)"
+        sm: "calc(var(--radius) - 4px)",
+        xl: "1rem",
+        "2xl": "1.5rem",
+        "3xl": "2rem"
+      },
+      boxShadow: {
+        'soft': '0 4px 20px 0 rgba(0, 0, 0, 0.05)',
+        'glossy': '0 10px 30px 0 rgba(0, 0, 0, 0.10)',
+        'purple': '0 5px 15px rgba(138, 114, 206, 0.4)',
+        'blue': '0 5px 15px rgba(69, 37, 225, 0.4)',
+        'highlight': '0 0 0 2px hsl(var(--primary))',
+        'card': '0 4px 20px 0 rgba(138, 114, 206, 0.1)',
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'gradient-hero': 'linear-gradient(to right, hsl(255, 85%, 51%), hsl(260, 60%, 67%))',
       },
       keyframes: {
         "accordion-down": {
@@ -75,12 +91,22 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" }
         },
-        gradient: { to: { backgroundPosition: "var(--bg-size) 0" } }
+        gradient: { to: { backgroundPosition: "var(--bg-size) 0" } },
+        "float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" }
+        },
+        "pulse-light": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7" }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        gradient: "gradient 8s linear infinite"
+        gradient: "gradient 8s linear infinite",
+        "float": "float 6s ease-in-out infinite",
+        "pulse-light": "pulse-light 3s ease-in-out infinite",
       }
     }
   },
