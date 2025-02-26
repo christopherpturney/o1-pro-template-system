@@ -8,11 +8,13 @@
  * Key features:
  * - Responsive Design: Sidebar is fixed on desktop and toggleable on mobile
  * - Navigation: Links to dashboard sections (Dashboard, Meal Log, Meal History, Settings)
+ * - Active page indication: Current route is highlighted in the sidebar
  * - Integration: Works within the global layout, inheriting theme and authentication
  *
  * @dependencies
  * - react: For state management (useState, useEffect)
  * - next/link: For client-side navigation
+ * - next/navigation: For usePathname to determine current route
  * - lucide-react: For icons (Menu, X, Utensils)
  * - "@/components/ui/button": For styled buttons
  * - "@clerk/nextjs": For authentication components (UserButton)
@@ -22,10 +24,12 @@
  * - Uses Tailwind CSS for responsive styling
  * - Coordinates with the global header to prevent duplicate navigation on mobile
  * - Includes Clerk authentication button in the upper right corner
+ * - Sidebar links use light purple hover state to match the button styling
  */
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Menu, Utensils, X } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
@@ -37,6 +41,20 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // State to manage sidebar visibility on mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const pathname = usePathname()
+
+  /**
+   * Check if the current path matches the link path
+   * Handles both exact matches and nested routes
+   */
+  const isActivePath = (path: string) => {
+    // For dashboard, only return true if path is exactly /dashboard
+    if (path === "/dashboard") {
+      return pathname === "/dashboard"
+    }
+    // For other paths, check if pathname starts with the path
+    return pathname.startsWith(path)
+  }
 
   // Handle global header's dashboard detection
   useEffect(() => {
@@ -77,25 +95,41 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <nav className="flex-1 space-y-2 p-4">
             <Link
               href="/dashboard"
-              className="hover:bg-muted block rounded-md p-2"
+              className={`block rounded-md p-2 transition-colors ${
+                isActivePath("/dashboard")
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "hover:text-primary hover:bg-[#f0ebff]"
+              }`}
             >
               Dashboard
             </Link>
             <Link
               href="/meal-log"
-              className="hover:bg-muted block rounded-md p-2"
+              className={`block rounded-md p-2 transition-colors ${
+                isActivePath("/meal-log")
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "hover:text-primary hover:bg-[#f0ebff]"
+              }`}
             >
               Meal Log
             </Link>
             <Link
               href="/meal-history"
-              className="hover:bg-muted block rounded-md p-2"
+              className={`block rounded-md p-2 transition-colors ${
+                isActivePath("/meal-history")
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "hover:text-primary hover:bg-[#f0ebff]"
+              }`}
             >
               Meal History
             </Link>
             <Link
               href="/settings"
-              className="hover:bg-muted block rounded-md p-2"
+              className={`block rounded-md p-2 transition-colors ${
+                isActivePath("/settings")
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "hover:text-primary hover:bg-[#f0ebff]"
+              }`}
             >
               Settings
             </Link>

@@ -38,6 +38,7 @@ import { useState } from "react"
 import { Button } from "./button"
 import { Card, CardContent, CardHeader } from "./card"
 import { Input } from "./input"
+import { Badge } from "./badge"
 
 export interface FoodItem {
   name: string
@@ -46,7 +47,7 @@ export interface FoodItem {
   carbs: number
   fat: number
   imageUrl?: string
-  detectedViaAI?: boolean
+  detectedViaAi?: boolean
   confidence?: number
   source?: "USDA" | "OpenFoodFacts" | "default"
   sourceId?: string
@@ -167,10 +168,13 @@ export function FoodCard({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center space-x-2">
           <h4 className="text-sm font-medium leading-none">{food.name}</h4>
-          {food.detectedViaAI && (
-            <span className="bg-primary/10 text-primary rounded-full px-2 py-1 text-xs">
+          {food.detectedViaAi && (
+            <Badge
+              variant="outline"
+              className="bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+            >
               AI Detected
-            </span>
+            </Badge>
           )}
           {confidenceDisplay && (
             <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-800 dark:bg-green-900 dark:text-green-100">

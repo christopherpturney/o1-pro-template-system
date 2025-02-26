@@ -164,9 +164,9 @@ export function FoodItemList({
   const onSubmit = (values: FoodItemFormValues) => {
     const updatedFoodItem: FoodItem = {
       ...values,
-      detectedViaAI: isNewItem
+      detectedViaAi: isNewItem
         ? false
-        : currentFoodItem?.detectedViaAI || false,
+        : currentFoodItem?.detectedViaAi || false,
       imageUrl: currentFoodItem?.imageUrl
     }
 

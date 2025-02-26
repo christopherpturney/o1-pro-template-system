@@ -17,7 +17,7 @@
  * @notes
  * - Added glow effect to primary buttons
  * - Added gradient variant for highlighting key actions
- * - Improved hover and focus states
+ * - Improved hover and focus states with light purple effect
  */
 
 import * as React from "react"
@@ -32,18 +32,17 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-blue",
+          "bg-primary text-primary-foreground shadow-blue hover:bg-[#a98aff]",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
-          "border-input bg-background hover:bg-primary/5 hover:border-primary border-secondary/50 text-foreground border-2",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-primary/5 text-foreground hover:text-primary",
+          "border-input bg-background border-secondary/50 text-foreground border-2 hover:border-[#a98aff] hover:bg-[#f0ebff]",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-[#e3d7ff]",
+        ghost: "text-foreground hover:text-primary hover:bg-[#f0ebff]",
         link: "text-primary underline-offset-4 hover:underline",
         gradient:
           "bg-gradient-hero shadow-purple text-white hover:brightness-105",
-        soft: "bg-primary/10 text-primary hover:bg-primary/20"
+        soft: "bg-primary/10 text-primary hover:bg-[#e3d7ff]"
       },
       size: {
         default: "h-10 px-5 py-2.5",

@@ -38,10 +38,12 @@ import {
  * Lookup nutritional information for a food item by name
  * 
  * @param foodName - Name of the food item to lookup
+ * @param traceId - Optional trace ID for logging
  * @returns Promise with nutritional information
  */
 export async function getNutritionInfoAction(
-  foodName: string
+  foodName: string,
+  traceId?: string
 ): Promise<ActionState<FoodItemDetail[]>> {
   try {
     // Check authentication
@@ -58,8 +60,8 @@ export async function getNutritionInfoAction(
       }
     }
 
-    // Perform nutrition search through external APIs
-    const results = await searchFoodNutrition(foodName)
+    // Perform nutrition search through external APIs with trace ID
+    const results = await searchFoodNutrition(foodName, { traceId })
 
     // If no results, provide fallback
     if (results.items.length === 0) {
@@ -92,11 +94,13 @@ export async function getNutritionInfoAction(
  * 
  * @param source - Source database ('USDA' or 'OpenFoodFacts')
  * @param sourceId - ID of the food item in the source database
+ * @param traceId - Optional trace ID for logging
  * @returns Promise with detailed nutritional information
  */
 export async function getDetailedNutritionAction(
   source: string,
-  sourceId: string
+  sourceId: string,
+  traceId?: string
 ): Promise<ActionState<FoodItemDetail | null>> {
   try {
     // Check authentication
@@ -153,10 +157,12 @@ export async function getDetailedNutritionAction(
  * Batch lookup nutritional information for multiple food items
  * 
  * @param foodNames - Array of food item names to lookup
+ * @param traceId - Optional trace ID for logging
  * @returns Promise with nutritional information for each food item
  */
 export async function batchNutritionLookupAction(
-  foodNames: string[]
+  foodNames: string[],
+  traceId?: string
 ): Promise<ActionState<Record<string, FoodItemDetail>>> {
   try {
     // Check authentication
@@ -180,7 +186,7 @@ export async function batchNutritionLookupAction(
     await Promise.all(
       foodNames.map(async (name) => {
         try {
-          const result = await getNutritionInfoAction(name)
+          const result = await getNutritionInfoAction(name, traceId)
           if (result.isSuccess && result.data.length > 0) {
             // Use the best match (first item)
             results[name] = result.data[0]

@@ -128,7 +128,7 @@ async function MealDetail({ mealId }: { mealId: string }) {
     protein: parseFloat(item.protein?.toString() || "0"),
     carbs: parseFloat(item.carbs?.toString() || "0"),
     fat: parseFloat(item.fat?.toString() || "0"),
-    detectedViaAI: item.detectedViaAi || false,
+    detectedViaAi: item.detectedViaAi || false,
     confidence: item.confidence
       ? parseFloat(item.confidence.toString())
       : undefined,

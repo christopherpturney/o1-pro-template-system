@@ -73,3 +73,19 @@ export interface NutritionAPIResponse<T> {
   currentPage?: number
   totalPages?: number
 }
+
+/**
+ * Represents a detected food item from image processing
+ */
+export interface DetectedFoodItem {
+  name: string
+  confidence: number
+}
+
+/**
+ * Result of processing an image with AI
+ */
+export interface ImageProcessingResult {
+  foodItems: DetectedFoodItem[]
+  extractedText: string[]
+}

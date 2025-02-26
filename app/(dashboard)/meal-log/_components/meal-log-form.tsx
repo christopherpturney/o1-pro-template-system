@@ -34,8 +34,12 @@
  * - Optimistic UI updates on save while the server action completes
  */
 
-import { useState, useCallback, useTransition } from "react"
+import { useCallback, useEffect, useState, useTransition } from "react"
+import React from "react"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { useToast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -43,26 +47,30 @@ import { FoodItemList } from "@/components/food-item-list"
 import ImageUpload from "@/components/image-upload"
 import { FoodItem } from "@/components/ui/food-card"
 import {
-  ArrowRight,
-  Calendar,
-  Camera,
-  CheckCircle,
+  useFoodIdentificationLogger,
+  FoodIdentificationStep
+} from "@/lib/food-logger"
+import {
+  LoaderIcon,
+  RotateCcw,
   Loader2,
-  RotateCcw
+  ArrowRight,
+  Camera,
+  Calendar,
+  CheckCircle
 } from "lucide-react"
-// Import the new server action instead of the simplified version
-import { detectFoodInImageAction } from "@/actions/ai/food-detection-actions"
+import { detectFoodInImageAction } from "@/actions/detect-food"
 import { createMealAction } from "@/actions/db/meals-actions"
 import { createFoodItemAction } from "@/actions/db/food-items-actions"
 import {
   getNutritionInfoAction,
   batchNutritionLookupAction
 } from "@/actions/nutrition/nutrition-actions"
-import Image from "next/image"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useAuth } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 
 // Enum for the steps in the meal logging process
 enum MealLogStep {
@@ -90,6 +98,7 @@ export default function MealLogForm() {
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
   const { userId } = useAuth()
+  const logger = useFoodIdentificationLogger()
 
   // State for managing the multi-step process
   const [currentStep, setCurrentStep] = useState<MealLogStep>(
@@ -127,35 +136,43 @@ export default function MealLogForm() {
   }
 
   // Handle image upload - Fix the type to accept only one parameter
-  const handleImageUpload = useCallback((file: File) => {
-    if (file) {
-      setImageFile(file)
-      // Generate preview URL from the file
-      const previewUrl = URL.createObjectURL(file)
-      setImagePreview(previewUrl)
+  const handleImageUpload = useCallback(
+    (file: File) => {
+      if (file) {
+        setImageFile(file)
+        // Generate preview URL from the file
+        const previewUrl = URL.createObjectURL(file)
+        setImagePreview(previewUrl)
 
-      // Convert file to base64 for server processing
-      fileToBase64(file)
-        .then(base64String => {
-          setImageBase64(base64String)
-          setError(null)
-        })
-        .catch(err => {
-          console.error("Error converting image to base64:", err)
-          setError("Failed to process the image. Please try again.")
-        })
-    }
-  }, [])
+        // Convert file to base64 for server processing
+        fileToBase64(file)
+          .then(base64String => {
+            setImageBase64(base64String)
+            setError(null)
+
+            // Log the image upload
+            logger.logImageUpload(file, base64String)
+          })
+          .catch(err => {
+            console.error("Error converting image to base64:", err)
+            setError("Failed to process the image. Please try again.")
+
+            // Log the error
+            logger.logError(FoodIdentificationStep.IMAGE_UPLOAD, err)
+          })
+      }
+    },
+    [logger]
+  )
 
   // Handle food items changes
   const handleFoodItemsChange = useCallback((updatedItems: FoodItem[]) => {
     setFoodItems(updatedItems)
-    setError(null)
   }, [])
 
   // Fetch nutrition information for a single food item
   const fetchNutritionForFoodItem = useCallback(
-    async (item: FoodItem): Promise<FoodItem> => {
+    async (item: FoodItem, traceId?: string): Promise<FoodItem> => {
       try {
         // Return early if the item already has nutrition info
         if (
@@ -167,7 +184,8 @@ export default function MealLogForm() {
           return item
         }
 
-        const response = await getNutritionInfoAction(item.name)
+        // Pass the trace ID to the nutrition action
+        const response = await getNutritionInfoAction(item.name, traceId)
 
         if (response.isSuccess && response.data.length > 0) {
           const nutritionData = response.data[0]
@@ -189,27 +207,34 @@ export default function MealLogForm() {
         return item
       } catch (error) {
         console.error(`Error fetching nutrition for ${item.name}:`, error)
+
+        // Log the error
+        logger.logError(FoodIdentificationStep.NUTRITION_API_RESPONSE, error)
+
         return item
       }
     },
-    []
+    [logger]
   )
 
   // Process multiple food items in batch
   const processFoodItemsWithNutrition = useCallback(
-    async (items: FoodItem[]): Promise<FoodItem[]> => {
+    async (items: FoodItem[], traceId?: string): Promise<FoodItem[]> => {
       setIsLoadingNutrition(true)
 
       try {
         // Extract just the names for batch lookup
-        const foodNames = items.map(item => item.name)
+        const foodNames = items.map((item: FoodItem) => item.name)
 
-        // Batch lookup nutrition information
-        const response = await batchNutritionLookupAction(foodNames)
+        // Batch lookup nutrition information with trace ID
+        const response = await batchNutritionLookupAction(foodNames, traceId)
+
+        // Log nutrition API response
+        logger.logNutritionAPIResponse(response)
 
         if (response.isSuccess) {
           // Update each food item with its nutrition information
-          return items.map(item => {
+          return items.map((item: FoodItem) => {
             const nutritionData = response.data[item.name]
 
             if (nutritionData) {
@@ -232,18 +257,24 @@ export default function MealLogForm() {
 
         // If batch lookup fails, try each item individually
         const processedItems = await Promise.all(
-          items.map(item => fetchNutritionForFoodItem(item))
+          items.map((item: FoodItem) =>
+            fetchNutritionForFoodItem(item, traceId)
+          )
         )
 
         return processedItems
       } catch (error) {
         console.error("Error processing food items with nutrition:", error)
+
+        // Log the error
+        logger.logError(FoodIdentificationStep.NUTRITION_API_RESPONSE, error)
+
         return items
       } finally {
         setIsLoadingNutrition(false)
       }
     },
-    [fetchNutritionForFoodItem]
+    [fetchNutritionForFoodItem, logger]
   )
 
   // Process the uploaded image using AI
@@ -257,11 +288,29 @@ export default function MealLogForm() {
     setError(null)
 
     try {
-      // Call the server action with base64 data instead of blob URL
-      const result = await detectFoodInImageAction(imageBase64)
+      // Log the OpenAI Vision request
+      logger.logOpenAIVisionRequest(imageBase64)
+
+      // Call the server action with base64 data and trace ID
+      const result = await detectFoodInImageAction(imageBase64, logger.traceId)
+
+      // Log the OpenAI Vision response
+      logger.logOpenAIVisionResponse(result)
 
       if (!result.isSuccess) {
-        setError(result.message)
+        setError(result.message || "Failed to process the image")
+        return
+      }
+
+      // Safely access the response data
+      if (!result.data || !result.data.foodItems) {
+        setError("The response format was unexpected. Please try again.")
+
+        // Log the error
+        logger.logError(FoodIdentificationStep.OPENAI_VISION_RESPONSE, {
+          message: "Unexpected response format",
+          data: result
+        })
         return
       }
 
@@ -273,7 +322,8 @@ export default function MealLogForm() {
       }
 
       // Transform the detected food items to match our FoodItem interface
-      let detectedItems: FoodItem[] = result.data.foodItems.map(item => ({
+      // @ts-ignore: Ignore item type for now
+      const detectedItems: FoodItem[] = result.data.foodItems.map(item => ({
         name: item.name,
         calories: 0, // Will be populated by nutrition lookup
         protein: 0,
@@ -283,22 +333,56 @@ export default function MealLogForm() {
         confidence: item.confidence
       }))
 
-      // Fetch nutritional information for the detected food items
-      const itemsWithNutrition =
-        await processFoodItemsWithNutrition(detectedItems)
+      // Log nutrition API request
+      logger.logNutritionAPIRequest(detectedItems)
+
+      // Fetch nutritional information for the detected food items with trace ID
+      const itemsWithNutrition = await processFoodItemsWithNutrition(
+        detectedItems,
+        logger.traceId
+      )
+
+      // Log the final food items
+      logger.logFinalFoodItem(itemsWithNutrition)
 
       // Update state with the processed items
       setFoodItems(itemsWithNutrition)
       setCurrentStep(MealLogStep.Review)
     } catch (error) {
       console.error("Error processing image:", error)
-      setError(
+
+      // More detailed error handling based on error type
+      let errorMessage =
         "An unexpected error occurred while processing the image. Please try again."
-      )
+
+      if (error instanceof Error) {
+        // Extract more specific error information if available
+        if (
+          error.message.includes("fetch") ||
+          error.message.includes("network")
+        ) {
+          errorMessage =
+            "Network error: Please check your internet connection and try again."
+        } else if (error.message.includes("timeout")) {
+          errorMessage =
+            "The request timed out. Please try again with a smaller image or check your connection."
+        } else if (
+          error.message.includes("parse") ||
+          error.message.includes("JSON")
+        ) {
+          errorMessage =
+            "Error parsing the response from the image processing service. Please try again."
+        }
+      }
+
+      setError(errorMessage)
+
+      // Log the error
+      logger.logError(FoodIdentificationStep.OPENAI_VISION_RESPONSE, error)
     } finally {
       setIsProcessing(false)
     }
-  }, [imageFile, imageBase64, processFoodItemsWithNutrition])
+  }, [imageFile, imageBase64, processFoodItemsWithNutrition, logger])
 
   // Save the meal to the database
   const saveMeal = useCallback(() => {
@@ -440,28 +524,31 @@ export default function MealLogForm() {
                   id="meal-date"
                   type="datetime-local"
                   value={mealDate}
-                  onChange={e => setMealDate(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setMealDate(e.target.value)
+                  }
                   className="w-full max-w-xs"
                 />
               </div>
 
-              <Button
-                onClick={processImage}
-                disabled={!imageFile || isProcessing}
-                className="ml-auto"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Identify Food
-                    <ArrowRight className="ml-2 size-4" />
-                  </>
-                )}
-              </Button>
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  onClick={processImage}
+                  disabled={!imageFile || isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Identify Food
+                      <ArrowRight className="ml-2 size-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         )

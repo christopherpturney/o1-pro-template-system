@@ -13,6 +13,7 @@
  * @dependencies
  * - fetch API: For making HTTP requests
  * - @/types: For nutrition data types
+ * - @/lib/api/api-logger: For logging API calls
  *
  * @notes
  * - Uses environment variables for API keys
@@ -29,7 +30,14 @@ import {
   NutritionInfo,
   OpenFoodFactsSearchParams,
   USDASearchParams
-} from "@/types"
+} from "@/types/nutrition-types"
+import {
+  logNutritionAPIRequest,
+  logNutritionAPIResponse,
+  logAPIError,
+  logFinalFoodItem
+} from "@/lib/api/api-logger"
+import { FoodIdentificationStep } from "@/lib/logger"
 
 // Constants
 const USDA_API_KEY = process.env.USDA_API_KEY
@@ -57,12 +65,36 @@ const ERROR_MESSAGES = {
  * Search for food items in the USDA FoodData Central database
  *
  * @param params - Search parameters including query string
+ * @param traceId - Optional trace ID for logging
  * @returns Promise with search results
  */
 export async function searchUSDAFoods(
-  params: USDASearchParams
+  params: USDASearchParams,
+  traceId?: string
 ): Promise<NutritionAPIResponse<FoodItemDetail>> {
   try {
+    // Log the request if traceId is provided
+    if (traceId) {
+      // Create detailed request info for logging
+      const requestDetails = {
+        endpoint: `${USDA_BASE_URL}/foods/search`,
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        params: {
+          ...params,
+          api_key: USDA_API_KEY ? "[REDACTED]" : undefined
+        }
+      }
+
+      await logNutritionAPIRequest(
+        traceId,
+        "USDA FoodData Central",
+        requestDetails
+      )
+    }
+
     // Validate required parameters
     if (!params.query || params.query.trim() === "") {
       throw new Error(ERROR_MESSAGES.INVALID_QUERY)
@@ -76,20 +108,20 @@ export async function searchUSDAFoods(
     // Build query parameters
     const queryParams = new URLSearchParams({
       api_key: USDA_API_KEY,
-      query: params.query
+      query: params.query,
+      pageSize: params.pageSize?.toString() || "25",
+      pageNumber: params.pageNumber?.toString() || "1"
     })
 
     // Add optional parameters if provided
-    if (params.pageSize)
-      queryParams.append("pageSize", params.pageSize.toString())
-    if (params.pageNumber)
-      queryParams.append("pageNumber", params.pageNumber.toString())
     if (params.sortBy) queryParams.append("sortBy", params.sortBy)
     if (params.sortOrder) queryParams.append("sortOrder", params.sortOrder)
 
     // Add data types if provided (as comma-separated list)
     if (params.dataType && params.dataType.length > 0) {
-      queryParams.append("dataType", params.dataType.join(","))
+      params.dataType.forEach(type => {
+        queryParams.append("dataType", type)
+      })
     }
 
     // Make API request
@@ -115,8 +147,40 @@ export async function searchUSDAFoods(
     // Parse response
     const data = await response.json()
 
+    // Log the response if traceId is provided
+    if (traceId) {
+      // Create detailed response info for logging, including full data
+      const responseDetails = {
+        totalHits: data.totalHits,
+        currentPage: data.currentPage,
+        totalPages: data.totalPages,
+        foodsCount: data.foods?.length,
+        // Include the first 3 foods for detailed inspection
+        sampleFoods: data.foods?.slice(0, 3).map((food: any) => ({
+          fdcId: food.fdcId,
+          description: food.description,
+          dataType: food.dataType,
+          brandOwner: food.brandOwner,
+          ingredients: food.ingredients,
+          foodNutrients: food.foodNutrients?.slice(0, 10) // First 10 nutrients for sample
+        }))
+      }
+
+      await logNutritionAPIResponse(
+        traceId,
+        "USDA FoodData Central",
+        responseDetails
+      )
+    }
+
     // Transform USDA data to standard format
     const items = data.foods?.map((food: any) => transformUSDAFood(food)) || []
+
+    // Log the final processed food items if traceId is provided
+    if (traceId && items.length > 0) {
+      // Log all transformed items with complete data
+      await logFinalFoodItem(traceId, items)
+    }
 
     return {
       items,
@@ -126,6 +190,16 @@ export async function searchUSDAFoods(
     }
   } catch (error) {
     console.error("Error searching USDA foods:", error)
+
+    // Log the error if traceId is provided
+    if (traceId) {
+      await logAPIError(
+        traceId,
+        FoodIdentificationStep.NUTRITION_API_RESPONSE,
+        error
+      )
+    }
+
     // Return empty result set instead of throwing
     return {
       items: [],
@@ -189,12 +263,30 @@ export async function getUSDAFoodDetails(
  * Search for products in the OpenFoodFacts database
  *
  * @param params - Search parameters including search terms
+ * @param traceId - Optional trace ID for logging
  * @returns Promise with search results
  */
 export async function searchOpenFoodFacts(
-  params: OpenFoodFactsSearchParams
+  params: OpenFoodFactsSearchParams,
+  traceId?: string
 ): Promise<NutritionAPIResponse<FoodItemDetail>> {
   try {
+    // Log the request if traceId is provided
+    if (traceId) {
+      // Create detailed request info for logging
+      const requestDetails = {
+        endpoint: `${OPENFOODFACTS_BASE_URL}/search`,
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "FoodIdentificationApp/1.0"
+        },
+        params: params
+      }
+
+      await logNutritionAPIRequest(traceId, "OpenFoodFacts", requestDetails)
+    }
+
     // Validate required parameters
     if (!params.search_terms || params.search_terms.trim() === "") {
       throw new Error(ERROR_MESSAGES.INVALID_QUERY)
@@ -217,8 +309,8 @@ export async function searchOpenFoodFacts(
       {
         method: "GET",
         headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "AIFoodIdentifier/1.0"
+          "User-Agent": "FoodIdentificationApp/1.0", // Required by OFF API
+          "Content-Type": "application/json"
         },
         cache: "no-store"
       }
@@ -235,20 +327,60 @@ export async function searchOpenFoodFacts(
     // Parse response
     const data = await response.json()
 
+    // Log the response if traceId is provided
+    if (traceId) {
+      // Create detailed response info for logging
+      const responseDetails = {
+        totalHits: data.count,
+        currentPage: data.page || 1,
+        totalPages: data.page_count || 1,
+        productsCount: data.products?.length,
+        // Include sample products for detailed inspection
+        sampleProducts: data.products?.slice(0, 3).map((product: any) => ({
+          code: product.code,
+          product_name: product.product_name,
+          brands: product.brands,
+          categories: product.categories,
+          ingredients_text: product.ingredients_text,
+          nutriments: product.nutriments
+        })),
+        // Include raw query parameters for debugging
+        query: data.query
+      }
+
+      await logNutritionAPIResponse(traceId, "OpenFoodFacts", responseDetails)
+    }
+
     // Transform OpenFoodFacts data to standard format
     const items =
       data.products?.map((product: any) =>
         transformOpenFoodFactsProduct(product)
       ) || []
 
+    // Log the final processed food items if traceId is provided
+    if (traceId && items.length > 0) {
+      // Log all transformed items
+      await logFinalFoodItem(traceId, items)
+    }
+
     return {
       items,
       totalHits: data.count || 0,
       currentPage: data.page || 1,
-      totalPages: Math.ceil((data.count || 0) / (data.page_size || 20)) || 1
+      totalPages: data.page_count || 1
     }
   } catch (error) {
     console.error("Error searching OpenFoodFacts:", error)
+
+    // Log the error if traceId is provided
+    if (traceId) {
+      await logAPIError(
+        traceId,
+        FoodIdentificationStep.NUTRITION_API_RESPONSE,
+        error
+      )
+    }
+
     // Return empty result set instead of throwing
     return {
       items: [],
@@ -310,45 +442,67 @@ export async function getOpenFoodFactsProduct(
 }
 
 /**
- * Unified food search function that tries both APIs
+ * Search for food nutrition information across multiple data sources
  *
- * @param query - Food name to search for
- * @returns Promise with combined search results
+ * @param query - Search query string
+ * @param options - Optional parameters including traceId for logging
+ * @returns Promise with search results
  */
 export async function searchFoodNutrition(
-  query: string
+  query: string,
+  options?: { traceId?: string }
 ): Promise<NutritionAPIResponse<FoodItemDetail>> {
   try {
-    const [usdaResults, openFoodFactsResults] = await Promise.allSettled([
-      searchUSDAFoods({ query, pageSize: 10, dataType: ["Foundation"] }),
-      searchOpenFoodFacts({ search_terms: query, page_size: 10 })
-    ])
+    const traceId = options?.traceId
 
-    // Combine results from both APIs
-    const items: FoodItemDetail[] = []
+    // Start with USDA search
+    const usdaResults = await searchUSDAFoods(
+      { query, dataType: ["Foundation", "SR Legacy", "Survey (FNDDS)"] },
+      traceId
+    )
 
-    // Add USDA results if successful
-    if (usdaResults.status === "fulfilled") {
-      items.push(...usdaResults.value.items)
-    }
+    // Then search OpenFoodFacts
+    const offResults = await searchOpenFoodFacts(
+      { search_terms: query },
+      traceId
+    )
 
-    // Add OpenFoodFacts results if successful
-    if (openFoodFactsResults.status === "fulfilled") {
-      items.push(...openFoodFactsResults.value.items)
-    }
-
-    // Sort by relevance (assuming confidence score reflects relevance)
-    items.sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+    // Combine results, prioritizing USDA
+    const combinedItems = [
+      ...usdaResults.items,
+      ...offResults.items.filter(
+        offItem =>
+          !usdaResults.items.some(
+            usdaItem =>
+              usdaItem.name.toLowerCase() === offItem.name.toLowerCase()
+          )
+      )
+    ]
 
     return {
-      items,
-      totalHits: items.length
+      items: combinedItems,
+      totalHits: (usdaResults.totalHits || 0) + (offResults.totalHits || 0),
+      currentPage: 1,
+      totalPages: 1
     }
   } catch (error) {
     console.error("Error searching food nutrition:", error)
+
+    // Log the error if traceId is provided
+    if (options?.traceId) {
+      await logAPIError(
+        options.traceId,
+        FoodIdentificationStep.NUTRITION_API_RESPONSE,
+        error
+      )
+    }
+
+    // Return empty result set
     return {
       items: [],
-      totalHits: 0
+      totalHits: 0,
+      currentPage: 1,
+      totalPages: 1
     }
   }
 }
