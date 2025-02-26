@@ -54,7 +54,7 @@ const openai = new OpenAI({
  */
 export interface FoodItem {
   name: string
-  confidence?: number
+  confidence: number
 }
 
 /**
@@ -237,6 +237,12 @@ export async function processImageWithOpenAI(
     // Ensure the response has the expected structure
     if (!parsedResponse.foodItems) parsedResponse.foodItems = []
     if (!parsedResponse.extractedText) parsedResponse.extractedText = []
+
+    // Ensure each food item has a confidence score
+    parsedResponse.foodItems = parsedResponse.foodItems.map(item => ({
+      name: item.name,
+      confidence: item.confidence ?? 0 // Default to 0 if confidence is missing
+    }))
 
     const result: ActionState<ImageProcessingResult> = {
       isSuccess: true,

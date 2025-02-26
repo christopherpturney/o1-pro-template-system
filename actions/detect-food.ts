@@ -21,7 +21,26 @@ export async function detectFoodInImageAction(
     }
 
     // Process the image with OpenAI Vision API
-    return await processImageWithOpenAI(base64Image, traceId)
+    const result = await processImageWithOpenAI(base64Image, traceId)
+    
+    if (!result.isSuccess) {
+      return {
+        isSuccess: false,
+        message: result.message
+      }
+    }
+
+    // Transform the result to match the expected ImageProcessingResult type from @/types
+    const transformedResult: ImageProcessingResult = {
+      foodItems: result.data.foodItems,
+      extractedText: result.data.extractedText
+    }
+
+    return {
+      isSuccess: true,
+      message: result.message,
+      data: transformedResult
+    }
   } catch (error) {
     console.error("Error in detect food action:", error)
     return {
