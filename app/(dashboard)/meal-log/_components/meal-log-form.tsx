@@ -87,10 +87,11 @@ interface MealLogFoodItem {
   carbs: number
   fat: number
   detectedViaAi?: boolean
-  detectedViaAI?: boolean // UI component uses capital AI
   imageUrl?: string
   // Add source property to match what we're setting in the code
   source?: "USDA" | "OpenFoodFacts" | "default"
+  sourceId?: string
+  confidence?: number
 }
 
 export default function MealLogForm() {
@@ -329,7 +330,7 @@ export default function MealLogForm() {
         protein: 0,
         carbs: 0,
         fat: 0,
-        detectedViaAI: true,
+        detectedViaAi: true,
         confidence: item.confidence
       }))
 
@@ -436,7 +437,7 @@ export default function MealLogForm() {
             protein: item.protein?.toString() || "0",
             carbs: item.carbs?.toString() || "0",
             fat: item.fat?.toString() || "0",
-            detectedViaAi: item.detectedViaAI || false,
+            detectedViaAi: item.detectedViaAi || false,
             // Handle confidence as a string or null
             confidence: item.confidence?.toString() || null,
             source: item.source,
