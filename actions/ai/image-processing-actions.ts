@@ -102,13 +102,20 @@ export async function normalizeProcessingResult(result: ActionState<ImageProcess
   try {
     const { foodItems = [], extractedText = [] } = result.data;
 
-    // Normalize food items
-    const normalizedFoodItems = foodItems.map(item => ({
-      name: typeof item.name === 'string' ? item.name.trim() : '',
-      confidence: typeof item.confidence === 'number' && !isNaN(item.confidence) 
-        ? Math.min(Math.max(item.confidence, 0), 1) // Ensure confidence is between 0 and 1
-        : undefined
-    })).filter(item => item.name); // Remove items with empty names
+    // Helper function to ensure each item is a properly formatted FoodItem
+    const ensureFoodItem = (item: any): FoodItem => {
+      return {
+        name: typeof item.name === 'string' ? item.name.trim() : '',
+        confidence: typeof item.confidence === 'number' && !isNaN(item.confidence)
+          ? Math.min(Math.max(item.confidence, 0), 1) // Ensure confidence is between 0 and 1
+          : 0 // Default to 0 if confidence is missing or invalid
+      };
+    };
+
+    // Normalize food items and ensure they match the FoodItem interface
+    const normalizedFoodItems: FoodItem[] = foodItems
+      .map(ensureFoodItem)
+      .filter(item => item.name !== ''); // Remove items with empty names
 
     // Normalize extracted text
     const normalizedText = extractedText
@@ -176,21 +183,17 @@ export async function refineFoodItemsAction(
     // Filter items based on confidence threshold and normalize
     const filteredItems = foodItems
       // Keep items that either have no confidence score or meet the threshold
-      .filter(item => !item.confidence || item.confidence >= confidenceThreshold)
+      .filter(item => typeof item.confidence !== 'number' || item.confidence >= confidenceThreshold)
       // Normalize item properties
       .map(item => ({
         name: typeof item.name === 'string' ? item.name.trim() : '',
-        confidence: typeof item.confidence === 'number' ? item.confidence : undefined
+        confidence: typeof item.confidence === 'number' ? item.confidence : 0 // Default to 0 instead of undefined
       }))
       // Remove items with empty names
       .filter(item => item.name.length > 0);
 
     // Sort by confidence (highest first)
-    filteredItems.sort((a, b) => {
-      const confA = a.confidence ?? 0;
-      const confB = b.confidence ?? 0;
-      return confB - confA;
-    });
+    filteredItems.sort((a, b) => b.confidence - a.confidence);
 
     return {
       isSuccess: true,

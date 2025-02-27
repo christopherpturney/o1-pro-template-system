@@ -31,8 +31,12 @@ export async function detectFoodInImageAction(
     }
 
     // Transform the result to match the expected ImageProcessingResult type from @/types
+    // Ensure confidence is always a number, never undefined
     const transformedResult: ImageProcessingResult = {
-      foodItems: result.data.foodItems,
+      foodItems: result.data.foodItems.map(item => ({
+        name: item.name,
+        confidence: item.confidence ?? 0 // Default to 0 if confidence is undefined
+      })),
       extractedText: result.data.extractedText
     }
 

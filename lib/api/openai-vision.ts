@@ -238,11 +238,21 @@ export async function processImageWithOpenAI(
     if (!parsedResponse.foodItems) parsedResponse.foodItems = []
     if (!parsedResponse.extractedText) parsedResponse.extractedText = []
 
+    // Helper function to ensure food items are properly formatted
+    const ensureFoodItem = (item: any): FoodItem => {
+      return {
+        name: typeof item.name === "string" ? item.name : "",
+        confidence:
+          typeof item.confidence === "number" && !isNaN(item.confidence)
+            ? Math.min(Math.max(item.confidence, 0), 1) // Ensure confidence is between 0 and 1
+            : 0 // Default to 0 if confidence is missing or invalid
+      }
+    }
+
     // Ensure each food item has a confidence score
-    parsedResponse.foodItems = parsedResponse.foodItems.map(item => ({
-      name: item.name,
-      confidence: item.confidence ?? 0 // Default to 0 if confidence is missing
-    }))
+    parsedResponse.foodItems = parsedResponse.foodItems
+      .map(ensureFoodItem)
+      .filter(item => item.name.trim() !== "") // Remove items with empty names
 
     const result: ActionState<ImageProcessingResult> = {
       isSuccess: true,
