@@ -26,6 +26,16 @@ export default clerkMiddleware(async (auth, req) => {
     return regex.test(nextUrl.pathname);
   });
 
+  // If the user is logged in and trying to access login or signup pages, redirect to dashboard
+  if (userId && (nextUrl.pathname.startsWith('/login') || nextUrl.pathname.startsWith('/signup'))) {
+    return NextResponse.redirect(new URL('/dashboard', nextUrl.origin));
+  }
+
+  // If the user is logged in and trying to access root path, redirect to dashboard
+  if (userId && nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', nextUrl.origin));
+  }
+  
   // If the user is logged in and trying to access a protected route, allow them to access route
   if (userId) {
     return NextResponse.next();
