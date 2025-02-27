@@ -16,8 +16,7 @@ export async function getNutritionInfoAction(
     if (!foodName) {
       return {
         isSuccess: false,
-        message: "No food name provided",
-        data: []
+        message: "No food name provided"
       }
     }
 
@@ -33,8 +32,7 @@ export async function getNutritionInfoAction(
     console.error(`Error getting nutrition for ${foodName}:`, error)
     return {
       isSuccess: false,
-      message: "Failed to retrieve nutrition information",
-      data: []
+      message: "Failed to retrieve nutrition information"
     }
   }
 }
@@ -52,8 +50,7 @@ export async function batchNutritionLookupAction(
     if (!foodNames || foodNames.length === 0) {
       return {
         isSuccess: false,
-        message: "No food names provided",
-        data: {}
+        message: "No food names provided"
       }
     }
 
@@ -86,8 +83,7 @@ export async function batchNutritionLookupAction(
     console.error("Error in batch nutrition lookup:", error)
     return {
       isSuccess: false,
-      message: "Failed to complete batch nutrition lookup",
-      data: {}
+      message: "Failed to complete batch nutrition lookup"
     }
   }
 } 
